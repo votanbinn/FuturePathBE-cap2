@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tư vấn nghề nghiệp AI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-top: 30px;
+    }
+
+    form {
+      max-width: 500px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #34495e;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #bdc3c7;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus {
+      border-color: #3498db;
+      outline: none;
+      box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+    }
+
+    .error {
+      color: #e74c3c;
+      font-size: 12px;
+      display: none;
+    }
+
+    input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #3498db;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #2980b9;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Nhập thông tin của bạn</h1>
+
+  <form id="careerForm" action="http://127.0.0.1:5000/career-result" method="post">
+    <label>MBTI: </label>
+    <input type="text" name="mbti" id="mbti" placeholder="Ví dụ: INFP, ESTJ..." required />
+    <div class="error" id="mbtiError">MBTI phải gồm 4 chữ cái in hoa hợp lệ: E, I, S, N, T, F, J, P.</div>
+
+    <label>Holland: </label>
+    <input type="text" name="holland" id="holland" placeholder="Ví dụ: IR, SE..." required />
+    <div class="error" id="hollandError">Holland phải gồm 2 chữ cái in hoa hợp lệ: R, I, A, S, E, C.</div>
+
+    <label>Kỹ năng: </label>
+    <input type="text" name="skills" id="skills" placeholder="Ví dụ: Giao tiếp, Phân tích..." required />
+    <div class="error" id="skillsError">Vui lòng nhập kỹ năng.</div>
+
+    <label>Sở thích: </label>
+    <input type="text" name="interests" id="interests" placeholder="Ví dụ: Âm nhạc, Thể thao..." required />
+    <div class="error" id="interestsError">Vui lòng nhập sở thích.</div>
+
+    <input type="submit" value="Xem gợi ý nghề nghiệp" />
+  </form>
+
+  <script>
+    document.getElementById("careerForm").onsubmit = function (event) {
+      let isValid = true;
+
+      // Reset lỗi
+      document.querySelectorAll(".error").forEach((el) => (el.style.display = "none"));
+
+      // Validate MBTI: 4 ký tự in hoa trong tập [E, I, S, N, T, F, J, P]
+      const mbti = document.getElementById("mbti").value.trim();
+      if (!/^[EISNTFJP]{4}$/.test(mbti)) {
+        document.getElementById("mbtiError").style.display = "block";
+        isValid = false;
+      }
+
+      // Validate Holland: 2 ký tự in hoa trong tập [RIASEC]
+      const holland = document.getElementById("holland").value.trim();
+      if (!/^[RIASEC]{2}$/.test(holland)) {
+        document.getElementById("hollandError").style.display = "block";
+        isValid = false;
+      }
+
+      // Validate Skills
+      const skills = document.getElementById("skills").value.trim();
+      if (skills === "") {
+        document.getElementById("skillsError").style.display = "block";
+        isValid = false;
+      }
+
+      // Validate Interests
+      const interests = document.getElementById("interests").value.trim();
+      if (interests === "") {
+        document.getElementById("interestsError").style.display = "block";
+        isValid = false;
+      }
+
+      // Nếu có lỗi thì không gửi form
+      if (!isValid) {
+        event.preventDefault();
+      }
+    };
+  </script>
+</body>
+</html>

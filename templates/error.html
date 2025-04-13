@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lỗi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #c0392b;
+            margin-top: 30px;
+        }
+
+        .error-message {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: #e74c3c;
+            text-align: left;
+            white-space: pre-wrap; /* Preserve formatting for traceback */
+        }
+
+        a {
+            text-decoration: none;
+            color: #3498db;
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        a:hover {
+            color: #2980b9;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Đã xảy ra lỗi!</h1>
+    <div class="error-message">
+        <p>{{ message }}</p>
+    </div>
+
+    <div style="text-align:center;">
+        <a href="/career-suggestion-app/templates/index.html">← Quay lại</a>
+    </div>
+</body>
+</html>

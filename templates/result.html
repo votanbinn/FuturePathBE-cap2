@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết quả gợi ý nghề nghiệp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        .result-box {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            color: #34495e;
+            line-height: 1.6;
+        }
+
+        h2, h3 {
+            color: #2c3e50;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        p {
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        a {
+            text-decoration: none;
+            color: #3498db;
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Kết quả tư vấn dành cho bạn</h1>
+
+    <div class="result-box">
+        <h2>MBTI: {{ mbti }}</h2>
+        <h2>Holland: {{ holland }}</h2>
+        <h2>Kỹ năng: {{ skills }}</h2>
+        <h2>Sở thích: {{ interests }}</h2>
+
+        <h3>Gợi ý nghề nghiệp phù hợp:</h3>
+        <p style="white-space: pre-wrap;">{{ suggestion }}</p>
+    </div>
+
+    <div style="text-align:center;">
+        <a href="/">← Quay lại</a>
+    </div>
+</body>
+</html>
