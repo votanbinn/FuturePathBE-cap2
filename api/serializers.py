@@ -1,0 +1,157 @@
+from rest_framework import serializers
+from . import models
+from django.contrib.auth.hashers import make_password
+
+def validate_password(value):
+    if len(value) < 8:
+        raise serializers.ValidationError("Mật khẩu phải có ít nhất 8 ký tự.")
+    
+    if not any(char.isupper() for char in value):
+        raise serializers.ValidationError("Mật khẩu phải có ít nhất một chữ in hoa.")
+    
+    if not any(char.isdigit() for char in value):
+        raise serializers.ValidationError("Mật khẩu phải có ít nhất một số.")
+    
+    if not any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?' for char in value):
+        raise serializers.ValidationError("Mật khẩu phải có ít nhất một ký tự đặc biệt.")
+    
+    if ' ' in value:
+        raise serializers.ValidationError("Mật khẩu không được có khoảng trắng.")
+    
+    return value
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.User
+        fields = ['id', 'username', 'email', 'password']
+        extra_kwargs = {
+            'password': {'write_only': True}  # Không trả mật khẩu về client
+        }
+
+    def validate_password(self, value):
+        # Bước này đảm bảo mật khẩu được mã hóa mỗi lần
+        return make_password(value)
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Role
+        fields = ['id', 'name']
+
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserRole
+        fields = ['user', 'role']
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Quiz
+        fields = ['quiz_id', 'quiz_type', 'content', 'option1', 'option2', 'category']
+
+
+class QuizResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.QuizResult
+        fields = ['id', 'quiz_type','user', 'quiz', 'E_score', 'I_score', 'S_score', 'N_score', 'T_score', 'F_score', 'J_score', 'P_score', 'R_score', 'I_score_h', 'A_score_h', 'S_score_h', 'E_score_h', 'C_score_h', 'result']
+
+
+class UserAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserAnswer
+        fields = ['id', 'quiz_result', 'quiz', 'select_option', 'category']
+
+
+class ChatbotHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ChatbotHistory
+        fields = ['id', 'user', 'message', 'response', 'timestamp']
+
+
+class ChatSystemHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ChatSystemHistory
+        fields = ['id', 'user', 'message', 'timestamp']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notification
+        fields = ['id', 'user', 'message', 'created_at']
+
+
+class ForumPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ForumPost
+        fields = ['id', 'user', 'title', 'content', 'created_at']
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Comment
+        fields = ['id', 'post', 'user', 'content', 'created_at']
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Report
+        fields = ['id', 'post', 'user', 'reason', 'reported_at']
+
+
+class BannedUserHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.BannedUserHistory
+        fields = ['id', 'user', 'banned_at', 'reason']
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Transaction
+        fields = ['id', 'user', 'amount', 'transaction_date', 'transaction_status']
+
+
+class RevenueManagementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RevenueManagement
+        fields = ['id', 'total_revenue', 'report_date']
+
+
+class ExpertInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ExpertInformation
+        fields = ['id', 'user', 'expertise', 'experience_years']
+
+
+class ConsultantScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ConsultantSchedule
+        fields = ['id', 'expert', 'available_date', 'available_time']
+
+
+class ExpertWithdrawInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ExpertWithdrawInformation
+        fields = ['id', 'expert', 'bank_account', 'withdraw_amount']
+
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Feedback
+        fields = ['id', 'user', 'message', 'created_at']
+
+
+class UserProfileManagementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserProfileManagement
+        fields = ['id', 'user', 'profile_data']
+
+
+class ForumContentManagementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ForumContentManagement
+        fields = ['id', 'user', 'action', 'timestamp']
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
