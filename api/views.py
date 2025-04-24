@@ -1,57 +1,84 @@
-from django.shortcuts import render
 from django.http import HttpResponse
 from . import models
 from . import serializers
+import os
+from dotenv import load_dotenv
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.status import HTTP_401_UNAUTHORIZED
 from django.contrib.auth.hashers import check_password
-import re
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import AuthenticationFailed
+from django.shortcuts import get_object_or_404
 
-# Create your views here.
+
 def running(request):
     return HttpResponse("App is running")
 
+load_dotenv()  # Tải biến môi trường từ file .env
+
+# Lấy giá trị từ biến môi trường
+access_token = os.getenv('ACCESS_TOKEN')
+
 class LoginView(APIView):
     def post(self, request):
-        # Sử dụng serializer để xác thực dữ liệu đầu vào
-        serializer = serializers.LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
+        email = request.data.get('email')
+        password = request.data.get('password')
 
-            try:
-                # Tìm kiếm người dùng bằng username
-                user = models.User.objects.get(username=username)
+        # Kiểm tra thông tin đầu vào
+        if not email or not password:
+            return Response({"error": "Email và mật khẩu là bắt buộc"}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Sử dụng check_password để xác minh mật khẩu đã mã hóa
-                if check_password(password, user.password):
-                    # Đăng nhập thành công, không cấp token mà chỉ trả về thông báo
-                    return Response({
-                        "message": "Đăng nhập thành công!"
-                    }, status=status.HTTP_200_OK)
-                else:
-                    # Sai mật khẩu
-                    return Response({"error": "Tên đăng nhập hoặc mật khẩu không chính xác."}, status=status.HTTP_401_UNAUTHORIZED)
-            except models.User.DoesNotExist:
-                # Sai tên đăng nhập
-                return Response({"error": "Tên đăng nhập hoặc mật khẩu không chính xác."}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            # Tìm người dùng qua email
+            user = models.User.objects.get(email=email)
+        except models.User.DoesNotExist:
+            raise AuthenticationFailed("Tài khoản không tồn tại")
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Kiểm tra mật khẩu bằng Django
+        if not check_password(password, user.password):
+            raise AuthenticationFailed("Sai mật khẩu")
+
+        # Lấy vai trò người dùng
+        try:
+            user_role = models.UserRole.objects.get(user=user)
+            role = models.Role.objects.get(id=user_role.role.id)
+        except (models.UserRole.DoesNotExist, models.Role.DoesNotExist):
+            raise AuthenticationFailed("Không tìm thấy vai trò")
+
+        # Tạo token JWT
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        # Lưu token vào session
+        request.session['access_token'] = access_token
+
+        # Chuẩn bị dữ liệu trả về
+        user_response = {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "role": role.name
+        }
+
+        # Trả về thông tin người dùng và thông báo đăng nhập thành công
+        return Response({
+            "success": True,
+            "message": "Đăng nhập thành công",
+            "user": user_response,
+            "expiresIn": 3600  # Token hết hạn sau 1 tiếng
+        }, status=status.HTTP_200_OK)
     
     
 class AddUserView(APIView):
     def post(self, request):
-        # Kiểm tra dữ liệu
         serializer = serializers.UserSerializer(data=request.data)
         
         if serializer.is_valid():
             user = serializer.save()
             return Response({"message": "User created successfully", "user_id": user.id}, status=status.HTTP_201_CREATED)
-        
-        # Nếu validation thất bại, trả về lỗi
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class DeleteUserView(APIView):
@@ -80,10 +107,9 @@ class UpdateUserView(APIView):
 class TakeQuizView(APIView):
     def post(self, request):
         data = request.data
-        user_id = data.get('user')  # ID của người dùng
-        quiz_answers = data.get('answers')  # Câu trả lời của người dùng
+        user_id = data.get('user')
+        quiz_answers = data.get('answers')
 
-        # Kiểm tra nếu thiếu thông tin
         if not user_id or not quiz_answers:
             return Response({
                 "error": "Missing required fields: user, answers"
@@ -94,11 +120,9 @@ class TakeQuizView(APIView):
         except models.User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Kiểm tra nếu câu trả lời không hợp lệ
         if not isinstance(quiz_answers, dict):
             return Response({"error": "Answers must be a dictionary"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Tính toán điểm cho MBTI hoặc Holland
         result_data = {
             'E_score': 0,
             'I_score': 0,
@@ -118,17 +142,14 @@ class TakeQuizView(APIView):
             'quiz_type': ''
         }
 
-        # Lặp qua các câu trả lời và tính điểm
         for quiz_id, answer in quiz_answers.items():
             try:
                 quiz = models.Quiz.objects.get(id=quiz_id)
             except models.Quiz.DoesNotExist:
                 return Response({"error": f"Quiz with id {quiz_id} not found."}, status=status.HTTP_404_NOT_FOUND)
 
-            # Thêm quiz_type vào kết quả
             result_data['quiz_type'] = quiz.quiz_type
 
-            # Tính điểm tùy vào quiz loại
             if quiz.quiz_type == "MBTI":
                 if answer == "E":
                     result_data['E_score'] += 1
@@ -161,7 +182,6 @@ class TakeQuizView(APIView):
                 elif answer == "C":
                     result_data['C_score_h'] += 1
 
-        # Tính ra kết quả cuối cùng cho MBTI - Lấy 4 nhóm cao nhất
         if result_data['quiz_type'] == "MBTI":
             mbti_scores = {
                 "E": result_data['E_score'],
@@ -174,13 +194,10 @@ class TakeQuizView(APIView):
                 "P": result_data['P_score']
             }
 
-            # Sắp xếp theo điểm giảm dần
             sorted_mbti_scores = sorted(mbti_scores.items(), key=lambda x: x[1], reverse=True)
 
-            # Lấy 4 nhóm cao nhất
             result_data['result'] = ''.join([x[0] for x in sorted_mbti_scores[:4]])
 
-        # Tính ra kết quả cho Holland - Lấy 2 nhóm cao nhất
         elif result_data['quiz_type'] == "Holland":
             holland_scores = {
                 "R": result_data['R_score'],
@@ -191,24 +208,20 @@ class TakeQuizView(APIView):
                 "C": result_data['C_score_h']
             }
 
-            # Sắp xếp theo điểm giảm dần
             sorted_holland_scores = sorted(holland_scores.items(), key=lambda x: x[1], reverse=True)
 
-            # Lấy 2 nhóm cao nhất
             result_data['result'] = ''.join([x[0] for x in sorted_holland_scores[:2]])
 
-        # Lưu kết quả vào database
         if result_data['quiz_type'] == "MBTI":
-            quiz_id = 1  # Quiz MBTI luôn có quiz_id là 1
+            quiz_id = 1
         elif result_data['quiz_type'] == "Holland":
-            quiz_id = 61  # Quiz Holland luôn có quiz_id là 61
+            quiz_id = 61
         else:
-            quiz_id = None  # Hoặc xử lý trường hợp khác nếu cần
+            quiz_id = None
 
-        # Lưu kết quả vào database
         quiz_result = models.QuizResult.objects.create(
             user=user,
-            quiz_id=quiz_id,  # Đây chỉ là ví dụ, bạn có thể lưu nhiều bài quiz nếu cần
+            quiz_id=quiz_id,
             E_score=result_data['E_score'],
             I_score=result_data['I_score'],
             S_score=result_data['S_score'],
@@ -227,7 +240,6 @@ class TakeQuizView(APIView):
             quiz_type=result_data['quiz_type']
         )
 
-        # Trả về kết quả thành công
         return Response({
             "success": True,
             "data": {
@@ -253,3 +265,158 @@ class TakeQuizView(APIView):
             },
             "message": "Quiz result saved successfully"
         }, status=status.HTTP_201_CREATED)
+        
+class ForumPostView(APIView):
+    def post(self, request):
+        data = request.data
+        user_id = data.get('user_id')
+        title = data.get('title')
+        content = data.get('content')
+
+        if not user_id or not title or not content:
+            return Response({"error": "User ID, title, and content are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = models.User.objects.get(id=user_id)
+        except models.User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        post = models.ForumPost.objects.create(user=user, title=title, content=content)
+
+        serializer = serializers.ForumPostSerializer(post)
+
+        return Response({"success": True, "data": serializer.data}, status=status.HTTP_201_CREATED)
+    
+class CommentCreateView(APIView):
+    def post(self, request, post_id):
+        data = request.data
+        user_id = data.get('user_id')
+        content = data.get('content')
+
+        if not user_id or not content:
+            return Response({"error": "Missing user_id or content"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = models.User.objects.get(id=user_id)
+        except models.User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            post = models.ForumPost.objects.get(id=post_id)
+        except models.ForumPost.DoesNotExist:
+            return Response({"error": "Forum post not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        comment = models.Comment.objects.create(post=post, user=user, content=content)
+
+        return Response({
+            "message": "Comment created successfully",
+            "comment_id": comment.id
+        }, status=status.HTTP_201_CREATED)
+        
+class CreateUserInformationView(APIView):
+    def post(self, request):
+        serializer = serializers.UserInformationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UpdateUserInformationView(APIView):
+    def put(self, request, pk):
+        info = get_object_or_404(models.UserInformation, pk=pk)
+        serializer = serializers.UserInformationSerializer(info, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class DeleteUserInformationView(APIView):
+    def delete(self, request, pk):
+        info = get_object_or_404(models.UserInformation, pk=pk)
+        info.delete()
+        return Response({"message": "Xóa thành công."}, status=status.HTTP_204_NO_CONTENT)
+
+class CreateConsultationView(APIView):
+    def post(self, request):
+        data = request.data
+        user_id = data.get('user_id')
+        expert_id = data.get('expert_id')
+        schedule_id = data.get('schedule_id')
+        reason = data.get('reason', '')
+
+        if not user_id or not expert_id or not schedule_id:
+            return Response({"error": "Missing user_id, expert_id or schedule_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = models.User.objects.get(id=user_id)
+        except models.User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            expert = models.ExpertInformation.objects.get(id=expert_id)
+        except models.ExpertInformation.DoesNotExist:
+            return Response({"error": "Expert not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            schedule = models.ConsultantSchedule.objects.get(id=schedule_id)
+        except models.ConsultantSchedule.DoesNotExist:
+            return Response({"error": "Schedule not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        consultation = models.Consultation.objects.create(
+            user=user,
+            expert=expert,
+            schedule=schedule,
+            reason=reason
+        )
+
+        return Response({
+            "message": "Consultation created successfully",
+            "consultation_id": consultation.id
+        }, status=status.HTTP_201_CREATED)
+        
+class UpdateConsultationView(APIView):
+    def put(self, request, pk):
+        try:
+            consultation = models.Consultation.objects.get(id=pk)
+        except models.Consultation.DoesNotExist:
+            return Response({"error": "Consultation not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        expert_id = data.get('expert_id')
+        schedule_id = data.get('schedule_id')
+        reason = data.get('reason', consultation.reason)
+        is_confirmed = data.get('is_confirmed', consultation.is_confirmed)
+
+        if expert_id:
+            try:
+                expert = models.ExpertInformation.objects.get(id=expert_id)
+                consultation.expert = expert
+            except models.ExpertInformation.DoesNotExist:
+                return Response({"error": "Expert not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if schedule_id:
+            try:
+                schedule = models.ConsultantSchedule.objects.get(id=schedule_id)
+                consultation.schedule = schedule
+            except models.ConsultantSchedule.DoesNotExist:
+                return Response({"error": "Schedule not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        consultation.reason = reason
+        consultation.is_confirmed = is_confirmed
+        consultation.save()
+
+        return Response({
+            "message": "Consultation updated successfully",
+            "consultation_id": consultation.id
+        }, status=status.HTTP_200_OK)
+        
+class DeleteConsultationView(APIView):
+    def delete(self, request, pk):
+        try:
+            consultation = models.Consultation.objects.get(id=pk)
+        except models.Consultation.DoesNotExist:
+            return Response({"error": "Consultation not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        consultation.delete()
+
+        return Response({"message": "Consultation deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

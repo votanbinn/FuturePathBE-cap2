@@ -5,6 +5,7 @@ class User(models.Model):
     email = models.EmailField(max_length=255, unique=True)
     password = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -23,7 +24,6 @@ class UserRole(models.Model):
     class Meta:
         unique_together = ['user', 'role']
 
-
 class Quiz(models.Model):
     quiz_type = models.CharField(max_length=255, choices=[('MBTI', 'MBTI'), ('Holland', 'Holland')])
     content = models.CharField(max_length=255)
@@ -35,7 +35,6 @@ class Quiz(models.Model):
 
     def __str__(self):
         return self.content
-
 
 class QuizResult(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -60,7 +59,6 @@ class QuizResult(models.Model):
     def __str__(self):
         return f"QuizResult for {self.user.username}"
 
-
 class UserAnswer(models.Model):
     quiz_result = models.ForeignKey(QuizResult, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
@@ -72,13 +70,11 @@ class UserAnswer(models.Model):
     def __str__(self):
         return f"Answer for {self.quiz_result}"
 
-
 class ChatbotHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     response = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-
 
 class ChatSystemHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -97,6 +93,7 @@ class ForumPost(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)
 
 
 class Comment(models.Model):
@@ -142,6 +139,16 @@ class ConsultantSchedule(models.Model):
     available_date = models.DateField()
     available_time = models.TimeField()
 
+class Consultation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    expert = models.ForeignKey(ExpertInformation, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(ConsultantSchedule, on_delete=models.CASCADE)
+    reason = models.TextField(null=True, blank=True)
+    is_confirmed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} đặt lịch với {self.expert.user.username} vào {self.schedule.available_date} {self.schedule.available_time}"
 
 class ExpertWithdrawInformation(models.Model):
     expert = models.ForeignKey(ExpertInformation, on_delete=models.CASCADE)
@@ -155,9 +162,16 @@ class Feedback(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class UserProfileManagement(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    profile_data = models.TextField()
+class UserInformation(models.Model):
+    user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='information')
+    full_name = models.CharField(max_length=255)
+    age = models.IntegerField()
+    dob = models.DateField()  # Ngày sinh
+    phone_number = models.CharField(max_length=20)
+    account_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"Info of {self.user.username}"
 
 
 class ForumContentManagement(models.Model):

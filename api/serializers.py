@@ -84,7 +84,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 class ForumPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ForumPost
-        fields = ['id', 'user', 'title', 'content', 'created_at']
+        fields = ['id', 'user', 'title', 'content', 'created_at', 'status']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -141,17 +141,26 @@ class FeedbackSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'message', 'created_at']
 
 
-class UserProfileManagementSerializer(serializers.ModelSerializer):
+class UserInformationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.UserProfileManagement
-        fields = ['id', 'user', 'profile_data']
+        model = models.UserInformation
+        fields = '__all__'
 
 
 class ForumContentManagementSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    expert = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = models.ForumContentManagement
         fields = ['id', 'user', 'action', 'timestamp']
 
+class ConsultationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Consultation
+        fields = ['expert', 'schedule', 'reason']
+        read_only_fields = ['is_confirmed', 'created_at']
+        
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField()
+    password = serializers.CharField()
+    
