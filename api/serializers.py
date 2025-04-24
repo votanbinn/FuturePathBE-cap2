@@ -57,12 +57,6 @@ class QuizResultSerializer(serializers.ModelSerializer):
         fields = ['id', 'quiz_type','user', 'quiz', 'E_score', 'I_score', 'S_score', 'N_score', 'T_score', 'F_score', 'J_score', 'P_score', 'R_score', 'I_score_h', 'A_score_h', 'S_score_h', 'E_score_h', 'C_score_h', 'result']
 
 
-class UserAnswerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.UserAnswer
-        fields = ['id', 'quiz_result', 'quiz', 'select_option', 'category']
-
-
 class ChatbotHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ChatbotHistory

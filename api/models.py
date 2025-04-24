@@ -59,17 +59,6 @@ class QuizResult(models.Model):
     def __str__(self):
         return f"QuizResult for {self.user.username}"
 
-class UserAnswer(models.Model):
-    quiz_result = models.ForeignKey(QuizResult, on_delete=models.CASCADE)
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    select_option = models.CharField(max_length=1, choices=[('a', 'Option A'), ('b', 'Option B')])
-    category = models.CharField(max_length=255, choices=[('E/I', 'E/I'), ('S/N', 'S/N'), ('T/F', 'T/F'),
-                                                         ('J/P', 'J/P'), ('R/I', 'R/I'), ('A/S', 'A/S'),
-                                                         ('E/C', 'E/C')])
-
-    def __str__(self):
-        return f"Answer for {self.quiz_result}"
-
 class ChatbotHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
