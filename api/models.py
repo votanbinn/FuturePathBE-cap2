@@ -63,6 +63,7 @@ class ChatbotHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     response = models.TextField()
+    conversation_id = models.IntegerField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 class Notification(models.Model):

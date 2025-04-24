@@ -60,7 +60,7 @@ class QuizResultSerializer(serializers.ModelSerializer):
 class ChatbotHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ChatbotHistory
-        fields = ['id', 'user', 'message', 'response', 'timestamp']
+        fields = ['id', 'user', 'message', 'response', 'timestamp', 'conversation']
 
 
 class NotificationSerializer(serializers.ModelSerializer):
