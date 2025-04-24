@@ -76,12 +76,6 @@ class ChatbotHistory(models.Model):
     response = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
-class ChatSystemHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
@@ -178,3 +172,14 @@ class ForumContentManagement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     action = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
+    
+class ChatMessage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    expert = models.ForeignKey(ExpertInformation, on_delete=models.CASCADE)
+    sender_type = models.CharField(max_length=10, choices=[("user", "User"), ("expert", "Expert")])
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        sender = self.user.username if self.sender_type == "user" else self.expert.user.username
+        return f"{sender}: {self.message[:30]}"

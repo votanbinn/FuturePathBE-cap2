@@ -420,3 +420,17 @@ class DeleteConsultationView(APIView):
         consultation.delete()
 
         return Response({"message": "Consultation deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    
+class SendChatMessageView(APIView):
+    def post(self, request):
+        serializer = serializers.ChatMessageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ChatHistoryView(APIView):
+    def get(self, request, user_id, expert_id):
+        messages = models.ChatMessage.objects.filter(user_id=user_id, expert_id=expert_id).order_by('timestamp')
+        serializer = serializers.ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data)

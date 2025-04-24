@@ -69,12 +69,6 @@ class ChatbotHistorySerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'message', 'response', 'timestamp']
 
 
-class ChatSystemHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.ChatSystemHistory
-        fields = ['id', 'user', 'message', 'timestamp']
-
-
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Notification
@@ -164,3 +158,7 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
     
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ChatMessage
+        fields = '__all__'

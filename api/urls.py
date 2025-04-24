@@ -18,4 +18,6 @@ urlpatterns = [
     path('consultation/', views.CreateConsultationView.as_view(), name='create_consultation'),
     path('consultation/<int:pk>/update/', views.UpdateConsultationView.as_view(), name='update_consultation'),
     path('consultation/<int:pk>/delete/', views.DeleteConsultationView.as_view(), name='delete_consultation'),
+    path('SendChat/', views.SendChatMessageView.as_view(), name='Send Chat Message'),
+    path('chathistory/<int:user_id>/<int:expert_id>/', views.ChatHistoryView.as_view(), name='chat-history'),
 ]
