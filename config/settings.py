@@ -88,11 +88,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'HuongNghiep',
+        'NAME': 'railway',
         'USER': 'postgres',
-        'PASSWORD': '220903',
-        'HOST': 'localhost',  # hoặc IP của server database
-        'PORT': '5432',  # Cổng mặc định của PostgreSQL
+        'PASSWORD': 'GVgSgnqVbSjHhAQQJcqdPUDjkLDdiEqt',
+        'HOST': 'hopper.proxy.rlwy.net',
+        'PORT': '49751',
     }
 }
 
