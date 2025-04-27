@@ -87,26 +87,51 @@ class AddUserView(APIView):
     
 class DeleteUserView(APIView):
     def delete(self, request, user_id):
+        role_name = request.data.get('role_name')
+        if not role_name:
+            return Response({"error": "Thiếu role_name"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if role_name != 'admin':
+            return Response({"error": "Bạn không có quyền xóa user"}, status=status.HTTP_403_FORBIDDEN)
+
         try:
-            user = models.User.objects.get(id=user_id)
-            user.delete()
-            return Response({"message": f"User with ID {user_id} deleted successfully"}, status=status.HTTP_200_OK)
+            user_to_delete = models.User.objects.get(id=user_id)
+            user_to_delete.delete()
+            return Response({"message": f"User với ID {user_id} đã được xóa thành công"}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response({"error": "Không tìm thấy user cần xóa"}, status=status.HTTP_404_NOT_FOUND)
+
+
 class UpdateUserView(APIView):
     def put(self, request, user_id):
-        try:
-            user = models.User.objects.get(id=user_id)
-        except ObjectDoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = serializers.UserSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": f"User with ID {user_id} updated successfully"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        role_name = request.data.get('role_name')
+        if not role_name:
+            return Response({"error": "Thiếu role_name"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if role_name != 'admin':
+            return Response({"error": "Bạn không có quyền cập nhật user"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            user_to_update = models.User.objects.get(id=user_id)
+        except ObjectDoesNotExist:
+            return Response({"error": "Không tìm thấy user cần cập nhật"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update các trường username, email, password nếu có
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if username:
+            user_to_update.username = username
+        if email:
+            user_to_update.email = email
+        if password:
+            from django.contrib.auth.hashers import make_password
+            user_to_update.password = make_password(password)  # Mã hóa password luôn cho an toàn
+
+        user_to_update.save()
+
+        return Response({"message": f"User với ID {user_id} đã được cập nhật thành công"}, status=status.HTTP_200_OK)
         
 class TakeQuizView(APIView):
     def post(self, request):
@@ -439,18 +464,4 @@ class ChatHistoryView(APIView):
         serializer = serializers.ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
     
-class AdminLoginView(APIView):
-    def post(self, request):
-        account = request.data.get('account')  # Thay đổi 'username' thành 'account'
-        password = request.data.get('password')
-
-        try:
-            admin = models.AdminSystem.objects.get(account=account)  # Dùng 'account' thay vì 'username'
-            if admin.check_password(password):
-                # Gửi lại thông tin admin sau khi đăng nhập thành công
-                serializer = serializers.AdminSystemSerializer(admin)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response({"error": "Mật khẩu không đúng"}, status=status.HTTP_400_BAD_REQUEST)
-        except models.AdminSystem.DoesNotExist:
-            return Response({"error": "Tài khoản không tồn tại"}, status=status.HTTP_404_NOT_FOUND)
+        

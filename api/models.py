@@ -10,27 +10,12 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
-    
-class AdminSystem(models.Model):
-    admin_id = models.IntegerField(default=1)
-    account = models.CharField(max_length=50, unique=True, default='admin')  # Cung cấp giá trị mặc định
-    password = models.CharField(max_length=255, default='123456')  # Cung cấp giá trị mặc định
-
-    def save(self, *args, **kwargs):
-        if not self.pk:  # Nếu chưa có ID, tức là bản ghi mới, mã hóa mật khẩu
-            self.password = make_password(self.password)
-        super(AdminSystem, self).save(*args, **kwargs)
-    
-    def __str__(self):
-        return self.account
-
 
 class Role(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return self.name
-
 
 class UserRole(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -92,6 +77,10 @@ class ForumPost(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.title
+
 
 class Comment(models.Model):
     post = models.ForeignKey(ForumPost, on_delete=models.CASCADE)
@@ -104,6 +93,15 @@ class Report(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     reason = models.TextField()
     reported_at = models.DateTimeField(auto_now_add=True)
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    
+    def __str__(self):
+        return f"Report {self.id} - {self.status}"
 
 class BannedUserHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

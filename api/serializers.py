@@ -71,7 +71,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 class ForumPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ForumPost
-        fields = ['id', 'user', 'title', 'content', 'created_at', 'status']
+        fields = ['id', 'user', 'title', 'content', 'created_at', 'status',]
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -83,7 +83,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Report
-        fields = ['id', 'post', 'user', 'reason', 'reported_at']
+        fields = ['id', 'post', 'user', 'reason', 'reported_at', 'status']
 
 
 class BannedUserHistorySerializer(serializers.ModelSerializer):
@@ -155,7 +155,3 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         model = models.ChatMessage
         fields = '__all__'
 
-class AdminSystemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.AdminSystem
-        fields = ['admin_id', 'account', 'password']
