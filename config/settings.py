@@ -27,6 +27,24 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'ERROR',  # Hoặc 'DEBUG', 'INFO' tùy thuộc vào mức độ log bạn muốn thấy
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',  # Xuất lỗi ra terminal
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',  # Chỉ hiển thị các lỗi mức độ ERROR trở lên
+            'propagate': True,
+        },
+    },
+}
 
 # Application definition
 

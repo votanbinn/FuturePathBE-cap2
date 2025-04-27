@@ -62,7 +62,6 @@ class ChatbotHistorySerializer(serializers.ModelSerializer):
         model = models.ChatbotHistory
         fields = ['id', 'user', 'message', 'response', 'timestamp', 'conversation']
 
-
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Notification
@@ -133,8 +132,7 @@ class UserInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.UserInformation
         fields = '__all__'
-
-
+        
 class ForumContentManagementSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     expert = serializers.StringRelatedField(read_only=True)
@@ -156,3 +154,8 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ChatMessage
         fields = '__all__'
+
+class AdminSystemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.AdminSystem
+        fields = ['admin_id', 'account', 'password']

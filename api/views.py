@@ -11,6 +11,10 @@ from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponseForbidden
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+
 
 
 def running(request):
@@ -434,3 +438,19 @@ class ChatHistoryView(APIView):
         messages = models.ChatMessage.objects.filter(user_id=user_id, expert_id=expert_id).order_by('timestamp')
         serializer = serializers.ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
+    
+class AdminLoginView(APIView):
+    def post(self, request):
+        account = request.data.get('account')  # Thay đổi 'username' thành 'account'
+        password = request.data.get('password')
+
+        try:
+            admin = models.AdminSystem.objects.get(account=account)  # Dùng 'account' thay vì 'username'
+            if admin.check_password(password):
+                # Gửi lại thông tin admin sau khi đăng nhập thành công
+                serializer = serializers.AdminSystemSerializer(admin)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Mật khẩu không đúng"}, status=status.HTTP_400_BAD_REQUEST)
+        except models.AdminSystem.DoesNotExist:
+            return Response({"error": "Tài khoản không tồn tại"}, status=status.HTTP_404_NOT_FOUND)

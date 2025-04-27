@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password
 
 class User(models.Model):
     username = models.CharField(max_length=255, unique=True)
@@ -10,6 +11,20 @@ class User(models.Model):
     def __str__(self):
         return self.username
     
+class AdminSystem(models.Model):
+    admin_id = models.IntegerField(default=1)
+    account = models.CharField(max_length=50, unique=True, default='admin')  # Cung cấp giá trị mặc định
+    password = models.CharField(max_length=255, default='123456')  # Cung cấp giá trị mặc định
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Nếu chưa có ID, tức là bản ghi mới, mã hóa mật khẩu
+            self.password = make_password(self.password)
+        super(AdminSystem, self).save(*args, **kwargs)
+    
+    def __str__(self):
+        return self.account
+
+
 class Role(models.Model):
     name = models.CharField(max_length=255, unique=True)
 
@@ -71,7 +86,6 @@ class Notification(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-
 class ForumPost(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
@@ -79,20 +93,17 @@ class ForumPost(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.BooleanField(default=True)
 
-
 class Comment(models.Model):
     post = models.ForeignKey(ForumPost, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-
 class Report(models.Model):
     post = models.ForeignKey(ForumPost, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     reason = models.TextField()
     reported_at = models.DateTimeField(auto_now_add=True)
-
 
 class BannedUserHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -117,7 +128,6 @@ class ExpertInformation(models.Model):
     expertise = models.CharField(max_length=255)
     experience_years = models.IntegerField()
 
-
 class ConsultantSchedule(models.Model):
     expert = models.ForeignKey(ExpertInformation, on_delete=models.CASCADE)
     available_date = models.DateField()
@@ -139,12 +149,10 @@ class ExpertWithdrawInformation(models.Model):
     bank_account = models.CharField(max_length=255)
     withdraw_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-
 class Feedback(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-
 
 class UserInformation(models.Model):
     user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='information')
