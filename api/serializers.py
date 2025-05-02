@@ -89,13 +89,13 @@ class ReportSerializer(serializers.ModelSerializer):
 class BannedUserHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.BannedUserHistory
-        fields = ['id', 'user', 'banned_at', 'reason']
+        fields = ['id', 'user', 'banned_at', 'reason', 'reject_count']
 
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Transaction
-        fields = ['id', 'user', 'amount', 'transaction_date', 'transaction_status']
+        fields = ['id', 'user', 'expert', 'amount', 'transaction_date', 'transaction_status']
 
 
 class RevenueManagementSerializer(serializers.ModelSerializer):
@@ -107,7 +107,7 @@ class RevenueManagementSerializer(serializers.ModelSerializer):
 class ExpertInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ExpertInformation
-        fields = ['id', 'user', 'expertise', 'experience_years']
+        fields = ['id', 'user', 'expertise', 'experience_years', 'date_of_birth', 'gender','major','workplace','description','certifications', 'account_balance']
 
 
 class ConsultantScheduleSerializer(serializers.ModelSerializer):

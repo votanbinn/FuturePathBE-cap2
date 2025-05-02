@@ -11,11 +11,6 @@ from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponseForbidden
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-
-
 
 def running(request):
     return HttpResponse("App is running")
@@ -295,6 +290,12 @@ class TakeQuizView(APIView):
             "message": "Quiz result saved successfully"
         }, status=status.HTTP_201_CREATED)
         
+from firebase_init import initialize_firebase
+from firebase_admin import db
+from django.utils.timezone import now
+
+initialize_firebase()
+
 class ForumPostView(APIView):
     def post(self, request):
         data = request.data
@@ -310,8 +311,24 @@ class ForumPostView(APIView):
         except models.User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        post = models.ForumPost.objects.create(user=user, title=title, content=content)
+        # Lưu dữ liệu vào database của Django
+        post = models.ForumPost.objects.create(
+            user=user, title=title, content=content, created_at=now()
+        )
 
+        # Cập nhật dữ liệu vào Firebase Realtime Database
+        ref = db.reference('forum_posts')  # Cập nhật trong node 'forum_posts'
+        post_data = {
+            'user_id': user.id,
+            'title': title,
+            'content': content,
+            'created_at': post.created_at.isoformat(),  # Đảm bảo format chuẩn ISO 8601
+        }
+
+        # Push dữ liệu lên Firebase
+        ref.push(post_data)
+
+        # Serializer dữ liệu trả về
         serializer = serializers.ForumPostSerializer(post)
 
         return Response({"success": True, "data": serializer.data}, status=status.HTTP_201_CREATED)
@@ -336,6 +353,18 @@ class CommentCreateView(APIView):
             return Response({"error": "Forum post not found"}, status=status.HTTP_404_NOT_FOUND)
 
         comment = models.Comment.objects.create(post=post, user=user, content=content)
+
+        # Push comment data to Firebase in a separate node "comments"
+        ref = db.reference('comments')  # Node riêng cho comment
+        comment_data = {
+            'user_id': user.id,
+            'post_id': post.id,
+            'content': content,
+            'created_at': comment.created_at.isoformat(),
+        }
+
+        # Push data to Firebase Realtime Database under the "comments" node
+        comment_ref = ref.push(comment_data)
 
         return Response({
             "message": "Comment created successfully",
@@ -450,13 +479,62 @@ class DeleteConsultationView(APIView):
 
         return Response({"message": "Consultation deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
     
-class SendChatMessageView(APIView):
+class ChatMessageView(APIView):
     def post(self, request):
-        serializer = serializers.ChatMessageSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+        user_id = data.get('user_id')
+        expert_id = data.get('expert_id')
+        sender_type = data.get('sender_type')
+        message = data.get('message')
+
+        # Kiểm tra dữ liệu đầu vào
+        if not user_id or not expert_id or not sender_type or not message:
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Lấy user và expert từ cơ sở dữ liệu
+        try:
+            user = models.User.objects.get(id=user_id)
+        except models.User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            expert = models.ExpertInformation.objects.get(id=expert_id)
+        except models.ExpertInformation.DoesNotExist:
+            return Response({"error": "Expert not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Lưu tin nhắn vào cơ sở dữ liệu Django
+        chat_message = models.ChatMessage.objects.create(
+            user=user,
+            expert=expert,
+            sender_type=sender_type,
+            message=message,
+            timestamp=now()
+        )
+
+        # Cập nhật Firebase Realtime Database
+        ref = db.reference('chat_messages')
+        message_data = {
+            'user_id': user.id,
+            'expert_id': expert.id,
+            'sender_type': sender_type,
+            'message': message,
+            'timestamp': chat_message.timestamp.isoformat(),
+        }
+
+        # Push dữ liệu lên Firebase
+        firebase_message_ref = ref.push(message_data)
+        
+        # Cập nhật ID Firebase vào Django
+        chat_message.firebase_message_id = firebase_message_ref.key
+        chat_message.save()
+
+        # Serialize dữ liệu trả về
+        serializer = serializers.ChatMessageSerializer(chat_message)
+
+        return Response({
+            "message": "Chat message sent successfully.",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
     
 class ChatHistoryView(APIView):
     def get(self, request, user_id, expert_id):
@@ -464,4 +542,59 @@ class ChatHistoryView(APIView):
         serializer = serializers.ChatMessageSerializer(messages, many=True)
         return Response(serializer.data)
     
+class ExpertInformationDetailView(APIView):
+    def get(self, request, expert_id):
+        try:
+            expert = models.ExpertInformation.objects.get(id=expert_id)
+        except models.ExpertInformation.DoesNotExist:
+            return Response({"error": "Expert not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize dữ liệu của chuyên gia
+        serializer = serializers.ExpertInformationSerializer(expert)
+
+        return Response({"expert": serializer.data}, status=status.HTTP_200_OK)
+    
+class CreateTransactionView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        expert_id = request.data.get('expert_id')
+
+        if not user_id or not expert_id:
+            return Response({"error": "Missing user_id or expert_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = models.User.objects.get(id=user_id)
+            expert = models.ExpertInformation.objects.get(id=expert_id)
+        except models.User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        except models.ExpertInformation.DoesNotExist:
+            return Response({"error": "Expert not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Tạo giao dịch với status mặc định là "từ chối" hoặc "hoàn thành" tùy ý
+        transaction = models.Transaction.objects.create(
+            user=user,
+            expert=expert,
+            amount=100000.00,
+            transaction_status='reject'  # hoặc 'hoàn thành' nếu bạn muốn
+        )
+
+        return Response({
+            "message": "Transaction created with status 'reject'",
+            "transaction_id": transaction.id
+        }, status=status.HTTP_201_CREATED)
         
+class ConfirmTransactionView(APIView):
+    def post(self, request, transaction_id):
+        try:
+            transaction = models.Transaction.objects.get(id=transaction_id)
+        except models.Transaction.DoesNotExist:
+            return Response({"error": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if transaction.transaction_status == 'complete':
+            return Response({"message": "Transaction already confirmed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        transaction.transaction_status = 'complete'
+        transaction.save()
+
+        return Response({"message": "Transaction confirmed successfully"}, status=status.HTTP_200_OK)
+    
